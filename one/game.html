@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你敢来嘛？</title>
+    <script src="../jquery.min.js"></script>
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+            box-sizing: border-box;
+        }
+
+        /* 简单的reset一下,并用box-sizing设置盒子尺寸将边框也计算进去,便于后面计算小方块位置 */
+
+        #gameZone {
+            width: 302px;
+            height: 602px;
+            border: 1px solid rgb(34, 190, 143);
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 游戏区域，多两个像素是为了除去边框外还有足够的300*600的空间 */
+
+        .square {
+            width: 75px;
+            height: 100px;
+            float: left;
+            border: 1px solid rgba(6, 4, 43, 0.815);
+        }
+
+        .squareBlack {
+            width: 75px;
+            height: 100px;
+            border: 1px solid black;
+            float: left;
+            background: radial-gradient(220% 105% at top center, #18065a 15%, #1f0c63 40%, #331b88 60%, #4f33b6);
+        }
+
+        /* 每个小方块为75*100，并且设置黑色小方块的背景色。 */
+
+        body {
+            background: radial-gradient(200% 100% at bottom center, #f7f7b6, #e96f92, #75517d, #1b2947);
+            background: radial-gradient(220% 105% at top center, #1b2947 10%, #75517d 40%, #e96f92 65%, #f7f7b6);
+            background-attachment: fixed;
+            overflow: hidden;
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: perspective(400px) rotateZ(20deg) rotateX(-40deg) rotateY(0);
+            }
+
+            100% {
+                transform: perspective(400px) rotateZ(20deg) rotateX(-40deg) rotateY(-360deg);
+            }
+        }
+
+        .stars {
+            transform: perspective(500px);
+            transform-style: preserve-3d;
+            position: absolute;
+            bottom: 0;
+            perspective-origin: 50% 100%;
+            left: 50%;
+            animation: rotate 90s infinite linear;
+        }
+
+        .star {
+            width: 2px;
+            height: 2px;
+            background: #f7f7b6;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0 -300px;
+            transform: translate3d(0, 0, -300px);
+            backface-visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="gameZone">
+        <div id="boardb" style="position: absolute;top: 0px;"></div>
+    </div>
+    <div class="stars">
+    </div>
+</body>
+<script>
+    $(document).ready(function () {
+        var stars = 800;
+        var $stars = $(".stars");
+        var r = 800;
+        for (var i = 0; i < stars; i++) {
+            var $star = $("<div/>").addClass("star");
+            $stars.append($star);
+        }
+        $(".star").each(function () {
+            var cur = $(this);
+            var s = 0.2 + (Math.random() * 1);
+            var curR = r + (Math.random() * 300);
+            cur.css({
+                transformOrigin: "0 0 " + curR + "px",
+                transform: " translate3d(0,0,-" + curR + "px) rotateY(" + (Math.random() *
+                    360) + "deg) rotateX(" + (Math.random() * -50) + "deg) scale(" + s +
+                    "," +
+                    s + ")"
+
+            })
+        })
+    })
+
+    var loc = 600; //黑块落地失败判定
+
+    var count = 0; //初始化击中黑块总数
+
+    var locArr = []; //初始化游戏板上黑块位置的
+
+    var order = (function () {
+
+        var ord = "A";
+
+        return function () {
+
+            if (ord == 'boarda') ord = 'boardb';
+
+            else ord = 'boarda';
+
+            return ord;
+
+        }
+
+    })() //用闭包函数使每次创建的游戏板的ID为boarda与boardb，
+    function judge() {
+
+        var num = this.id.substr(3) //获取元素的ID号
+
+        if (num != locArr.pop()) { //与位置数组pop出的对比
+
+            clearTimeout(timer);
+
+            alert("你的得分为：" + count + "分！");
+
+            return; //失败清除定时器，结算分数。
+
+        } else {
+
+            loc += 100;
+
+            this.style.background = "rgb(34, 190, 143)";
+
+            count += 1; //成功将落地标志加方格的高度，将方格背景色改变一下，击中数+1
+
+        }
+
+        if (count != 0 && count % 15 == 0) {
+
+            clearTimeout(timer);
+
+            newtimer = 50 - count / 15 * 5;
+
+            timer = setInterval('fall()', newtimer);
+
+        } //每击中15个后将速度加快一点，这个式子可自行定义。
+
+    }
+
+    function generateRand() {
+
+        var numArr = [];
+
+        for (var j = 0; j < 6; j++) {
+
+            var num = Math.floor(Math.random() * 4) + j * 4;
+
+            numArr.push(num);
+
+        }
+
+        return numArr;
+
+    }
+
+    function drawBoard() {
+
+        var temArr = generateRand(); //这里应用一个临时的位置数组，为了防止两块游戏板之间的位置冲突。
+
+        locArr = temArr.concat(locArr); //将临时数组相连到全局位置数组中
+
+        var board = document.createElement('div');
+
+        board.setAttribute('id', order());
+
+        board.style.position = "absolute";
+
+        board.style.top = '-600px';
+
+        for (var i = 0; i < 24; i++) {
+
+            var ele = document.createElement('div');
+
+            ele.setAttribute('id', "ele" + i);
+
+            if (temArr.indexOf(i) > -1) { //判断当前创建的小方块的ID序列是否属于临时位置数组
+
+                ele.setAttribute('class', 'squareBlack')
+
+            } else {
+
+                ele.setAttribute('class', 'square');
+
+            }
+
+            ele.addEventListener('click', judge, false); //给每一个小方格添加点击判定函数judge
+
+            board.appendChild(ele);
+
+        }
+
+        var gameZone = document.getElementById('gameZone');
+
+        gameZone.appendChild(board);
+
+    }
+
+    function fall() {
+
+        gameZone = document.getElementById('gameZone');
+
+        var boarda = document.getElementById('boarda'); //因为ab两个游戏板全局一直存在，所以不需要定义找不到时的逻辑
+
+        var anowtop = parseInt(boarda.style.top); //因为获取到的top位置是xxxpx类型，所以用一个parseInt()将其转换为整数便于处理。
+
+        if (anowtop == 595) { //这里数目为595而不是600是因为在这一帧删除后，下一帧正好600px，刚好使两块游戏板衔接完好。
+
+            gameZone.removeChild(boarda);
+
+            drawBoard(); //删除游戏区域的游戏板，并在最上方新生成一个。
+
+        }
+
+        anowtop += 5;
+
+        boarda.style.top = anowtop + "px";
+
+        var boardb = document.getElementById('boardb');
+
+        var bnowtop = parseInt(boardb.style.top);
+
+        if (bnowtop == 595) {
+
+            gameZone.removeChild(boardb);
+
+            drawBoard();
+
+        }
+
+        bnowtop += 5;
+
+        boardb.style.top = bnowtop + "px";
+
+        loc -= 5;
+
+        if (loc == 0) {
+
+            clearTimeout(timer);
+
+            alert("你的得分为：" + count + "分！");
+
+            return;
+
+        } //每一帧将落地判定减5，当落地判定为0时表示落地，结算分数。
+
+    }
+
+    window.onload = function () {
+
+        drawBoard();
+
+        fall();
+
+        timer = setInterval('fall()', 50);
+
+    }
+</script>
+
+</html>
